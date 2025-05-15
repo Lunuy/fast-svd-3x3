@@ -194,6 +194,7 @@ You can also use `svd` function with more features:
 - Compute or not compute V as Quaternion
 - Use accurate Rsqrt in jacobi conjugation
 - Perform strict quaternion renormalization
+
 Actually, `svd_mat` is specialization of this function to compute U, V as matrix and turn off accurate rsqrt and strict quaternion renormalization.
 
 ## Advanced Usage
