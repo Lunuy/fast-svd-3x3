@@ -1,5 +1,5 @@
-#![feature(portable_simd)]
-#![feature(stdarch_x86_avx512)]
+#![cfg_attr(feature = "portable_simd", feature(portable_simd))]
+#![cfg_attr(feature = "avx512", feature(stdarch_x86_avx512))]
 
 mod jacobi_conjugation;
 mod givens_qr_factorization;

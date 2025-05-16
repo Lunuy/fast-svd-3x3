@@ -1,4 +1,7 @@
-use std::{arch::x86_64::{__m256, _mm256_set_ps, _mm256_setzero_ps, _mm256_storeu_ps}, hint::black_box, ops::Range, simd::{f32x8, LaneCount, Simd, SupportedLaneCount}};
+use std::{arch::x86_64::{__m256, _mm256_set_ps, _mm256_setzero_ps, _mm256_storeu_ps}, hint::black_box, ops::Range};
+
+#[cfg(feature = "portable_simd")]
+use std::{simd::{f32x8, LaneCount, Simd, SupportedLaneCount}};
 
 use rand::{rngs::ThreadRng, Rng};
 
@@ -27,6 +30,7 @@ fn randoms_m256(length: usize, range: Range<f32>, rng: &mut ThreadRng) -> Vec<__
     }
 }
 
+#[cfg(feature = "portable_simd")]
 fn randoms_portable_simd<const N: usize>(length: usize, range: Range<f32>, rng: &mut ThreadRng) -> Vec<Simd<f32, N>>
 where
     LaneCount<N>: SupportedLaneCount,
