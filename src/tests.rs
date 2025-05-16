@@ -44,6 +44,18 @@ where
     }).collect()
 }
 
+#[cfg(feature = "wide")]
+fn randoms_wide(length: usize, range: Range<f32>, rng: &mut ThreadRng) -> Vec<wide::f32x8>
+{
+    (0..length).map(|_| {
+        let mut arr: [f32; 8] = [0.0; 8];
+        for i in 0..arr.len() {
+            arr[i] = rng.random_range(range.clone());
+        }
+        return wide::f32x8::from(arr);
+    }).collect()
+}
+
 const MAT_THRESHOLD: f32 = 2e-1;
 const ORTHO_THRESHOLD: f32 = 1e-5;
 const QUAT_THRESHOLD: f32 = 1e-5;
@@ -429,6 +441,110 @@ unsafe {
 }
 }
 
+#[cfg(feature = "wide")]
+#[test]
+fn wide_error_test() {
+    use wide::f32x8;
+    let mut rng = rand::rng();
+    let a11v = randoms_wide(ERROR_TESTS, TEST_RANGE.clone(), &mut rng);
+    let a12v = randoms_wide(ERROR_TESTS, TEST_RANGE.clone(), &mut rng);
+    let a13v = randoms_wide(ERROR_TESTS, TEST_RANGE.clone(), &mut rng);
+    let a21v = randoms_wide(ERROR_TESTS, TEST_RANGE.clone(), &mut rng);
+    let a22v = randoms_wide(ERROR_TESTS, TEST_RANGE.clone(), &mut rng);
+    let a23v = randoms_wide(ERROR_TESTS, TEST_RANGE.clone(), &mut rng);
+    let a31v = randoms_wide(ERROR_TESTS, TEST_RANGE.clone(), &mut rng);
+    let a32v = randoms_wide(ERROR_TESTS, TEST_RANGE.clone(), &mut rng);
+    let a33v = randoms_wide(ERROR_TESTS, TEST_RANGE.clone(), &mut rng);
+    
+    for i in 0..ERROR_TESTS {
+        let mut a11 = a11v[i]; let mut a12 = a12v[i]; let mut a13 = a13v[i];
+        let mut a21 = a21v[i]; let mut a22 = a22v[i]; let mut a23 = a23v[i];
+        let mut a31 = a31v[i]; let mut a32 = a32v[i]; let mut a33 = a33v[i];
+
+        let original: [na::Matrix3<f32>; 8] = (0..8).map(|i| {
+            na::Matrix3::new(
+                a11.as_array_ref()[i], a12.as_array_ref()[i], a13.as_array_ref()[i],
+                a21.as_array_ref()[i], a22.as_array_ref()[i], a23.as_array_ref()[i],
+                a31.as_array_ref()[i], a32.as_array_ref()[i], a33.as_array_ref()[i]
+            )
+        }).collect::<Vec<_>>().try_into().unwrap();
+
+        let mut u11 = f32x8::splat(0.0); let mut u12 = f32x8::splat(0.0); let mut u13 = f32x8::splat(0.0);
+        let mut u21 = f32x8::splat(0.0); let mut u22 = f32x8::splat(0.0); let mut u23 = f32x8::splat(0.0);
+        let mut u31 = f32x8::splat(0.0); let mut u32 = f32x8::splat(0.0); let mut u33 = f32x8::splat(0.0);
+        let mut v11 = f32x8::splat(0.0); let mut v12 = f32x8::splat(0.0); let mut v13 = f32x8::splat(0.0);
+        let mut v21 = f32x8::splat(0.0); let mut v22 = f32x8::splat(0.0); let mut v23 = f32x8::splat(0.0);
+        let mut v31 = f32x8::splat(0.0); let mut v32 = f32x8::splat(0.0); let mut v33 = f32x8::splat(0.0);
+        let mut qus = f32x8::splat(0.0);
+        let mut quvx = f32x8::splat(0.0);
+        let mut quvy = f32x8::splat(0.0);
+        let mut quvz = f32x8::splat(0.0);
+        let mut qvs = f32x8::splat(0.0);
+        let mut qvvx = f32x8::splat(0.0);
+        let mut qvvy = f32x8::splat(0.0);
+        let mut qvvz = f32x8::splat(0.0);
+
+        svd::svd(
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            &mut a11, &mut a12, &mut a13,
+            &mut a21, &mut a22, &mut a23,
+            &mut a31, &mut a32, &mut a33,
+            &mut u11, &mut u12, &mut u13,
+            &mut u21, &mut u22, &mut u23,
+            &mut u31, &mut u32, &mut u33,
+            &mut v11, &mut v12, &mut v13,
+            &mut v21, &mut v22, &mut v23,
+            &mut v31, &mut v32, &mut v33,
+            &mut qus,
+            &mut quvx,
+            &mut quvy,
+            &mut quvz,
+            &mut qvs,
+            &mut qvvx,
+            &mut qvvy,
+            &mut qvvz
+        );
+
+        let u: [na::Matrix3<f32>; 8] = (0..8).map(|i| {
+            na::Matrix3::new(
+                u11.as_array_ref()[i], u12.as_array_ref()[i], u13.as_array_ref()[i],
+                u21.as_array_ref()[i], u22.as_array_ref()[i], u23.as_array_ref()[i],
+                u31.as_array_ref()[i], u32.as_array_ref()[i], u33.as_array_ref()[i]
+            )
+        }).collect::<Vec<_>>().try_into().unwrap();
+        let s: [na::Matrix3<f32>; 8] = (0..8).map(|i| {
+            na::Matrix3::from_diagonal(&na::Vector3::new(
+                a11.as_array_ref()[i], a22.as_array_ref()[i], a33.as_array_ref()[i]
+            ))
+        }).collect::<Vec<_>>().try_into().unwrap();
+        let v: [na::Matrix3<f32>; 8] = (0..8).map(|i| {
+            na::Matrix3::new(
+                v11.as_array_ref()[i], v12.as_array_ref()[i], v13.as_array_ref()[i],
+                v21.as_array_ref()[i], v22.as_array_ref()[i], v23.as_array_ref()[i],
+                v31.as_array_ref()[i], v32.as_array_ref()[i], v33.as_array_ref()[i]
+            )
+        }).collect::<Vec<_>>().try_into().unwrap();
+        let qu: [na::UnitQuaternion<f32>; 8] = (0..8).map(|i| {
+            na::UnitQuaternion::new_normalize(na::Quaternion::new(
+                qus.as_array_ref()[i], quvx.as_array_ref()[i], quvy.as_array_ref()[i], quvz.as_array_ref()[i]
+            ))
+        }).collect::<Vec<_>>().try_into().unwrap();
+        let qv: [na::UnitQuaternion<f32>; 8] = (0..8).map(|i| {
+            na::UnitQuaternion::new_normalize(na::Quaternion::new(
+                qvs.as_array_ref()[i], qvvx.as_array_ref()[i], qvvy.as_array_ref()[i], qvvz.as_array_ref()[i]
+            ))
+        }).collect::<Vec<_>>().try_into().unwrap();
+        for j in 0..8 {
+            test_results(&original[j], &u[j], &s[j], &v[j], &qu[j], &qv[j]);
+        }
+    }
+}
+
 const PERFORMANCE_TESTS: usize = 10;
 const PERFORMANCE_TEST_LENGTH: usize = 1000000;
 
@@ -709,4 +825,104 @@ unsafe {
         println!("Time taken for portable simd SVD: {:?}", start.elapsed());
     }
 }
+}
+
+#[cfg(feature = "wide")]
+#[test]
+#[ignore]
+fn wide_performance_test() {
+    use wide::f32x8;
+    let mut rng = rand::rng();
+
+    for _ in 0..PERFORMANCE_TESTS {
+        let a11v = randoms_wide(PERFORMANCE_TEST_LENGTH, TEST_RANGE.clone(), &mut rng);
+        let a12v = randoms_wide(PERFORMANCE_TEST_LENGTH, TEST_RANGE.clone(), &mut rng);
+        let a13v = randoms_wide(PERFORMANCE_TEST_LENGTH, TEST_RANGE.clone(), &mut rng);
+        let a21v = randoms_wide(PERFORMANCE_TEST_LENGTH, TEST_RANGE.clone(), &mut rng);
+        let a22v = randoms_wide(PERFORMANCE_TEST_LENGTH, TEST_RANGE.clone(), &mut rng);
+        let a23v = randoms_wide(PERFORMANCE_TEST_LENGTH, TEST_RANGE.clone(), &mut rng);
+        let a31v = randoms_wide(PERFORMANCE_TEST_LENGTH, TEST_RANGE.clone(), &mut rng);
+        let a32v = randoms_wide(PERFORMANCE_TEST_LENGTH, TEST_RANGE.clone(), &mut rng);
+        let a33v = randoms_wide(PERFORMANCE_TEST_LENGTH, TEST_RANGE.clone(), &mut rng);
+    
+        let start = std::time::Instant::now();
+        for i in 0..PERFORMANCE_TEST_LENGTH {
+            let mut a11 = a11v[i]; let mut a12 = a12v[i]; let mut a13 = a13v[i];
+            let mut a21 = a21v[i]; let mut a22 = a22v[i]; let mut a23 = a23v[i];
+            let mut a31 = a31v[i]; let mut a32 = a32v[i]; let mut a33 = a33v[i];
+
+            let mut u11 = f32x8::splat(0.0);
+            let mut u12 = f32x8::splat(0.0);
+            let mut u13 = f32x8::splat(0.0);
+            let mut u21 = f32x8::splat(0.0);
+            let mut u22 = f32x8::splat(0.0);
+            let mut u23 = f32x8::splat(0.0);
+            let mut u31 = f32x8::splat(0.0);
+            let mut u32 = f32x8::splat(0.0);
+            let mut u33 = f32x8::splat(0.0);
+            let mut v11 = f32x8::splat(0.0);
+            let mut v12 = f32x8::splat(0.0);
+            let mut v13 = f32x8::splat(0.0);
+            let mut v21 = f32x8::splat(0.0);
+            let mut v22 = f32x8::splat(0.0);
+            let mut v23 = f32x8::splat(0.0);
+            let mut v31 = f32x8::splat(0.0);
+            let mut v32 = f32x8::splat(0.0);
+            let mut v33 = f32x8::splat(0.0);
+            let mut qus = f32x8::splat(0.0);
+            let mut quvx = f32x8::splat(0.0);
+            let mut quvy = f32x8::splat(0.0);
+            let mut quvz = f32x8::splat(0.0);
+            let mut qvs = f32x8::splat(0.0);
+            let mut qvvx = f32x8::splat(0.0);
+            let mut qvvy = f32x8::splat(0.0);
+            let mut qvvz = f32x8::splat(0.0);
+
+            svd::svd(
+                true,
+                true,
+                true,
+                true,
+                true,
+                true,
+                &mut a11, &mut a12, &mut a13,
+                &mut a21, &mut a22, &mut a23,
+                &mut a31, &mut a32, &mut a33,
+                &mut u11, &mut u12, &mut u13,
+                &mut u21, &mut u22, &mut u23,
+                &mut u31, &mut u32, &mut u33,
+                &mut v11, &mut v12, &mut v13,
+                &mut v21, &mut v22, &mut v23,
+                &mut v31, &mut v32, &mut v33,
+                &mut qus,
+                &mut quvx,
+                &mut quvy,
+                &mut quvz,
+                &mut qvs,
+                &mut qvvx,
+                &mut qvvy,
+                &mut qvvz
+            );
+
+            black_box(a11); black_box(a12); black_box(a13);
+            black_box(a21); black_box(a22); black_box(a23);
+            black_box(a31); black_box(a32); black_box(a33);
+            black_box(u11); black_box(u12); black_box(u13);
+            black_box(u21); black_box(u22); black_box(u23);
+            black_box(u31); black_box(u32); black_box(u33);
+            black_box(v11); black_box(v12); black_box(v13);
+            black_box(v21); black_box(v22); black_box(v23);
+            black_box(v31); black_box(v32); black_box(v33);
+            black_box(qus);
+            black_box(quvx);
+            black_box(quvy);
+            black_box(quvz);
+            black_box(qvs);
+            black_box(qvvx);
+            black_box(qvvy);
+            black_box(qvvz);
+        }
+
+        println!("Time taken for wide SVD: {:?}", start.elapsed());
+    }
 }

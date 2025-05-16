@@ -8,6 +8,8 @@ mod __m256;
 mod __m512;
 #[cfg(feature = "portable_simd")]
 mod portable_simd;
+#[cfg(feature = "wide")]
+mod wide;
 
 pub trait SVDCompatible {
     type Mask;

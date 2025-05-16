@@ -9,6 +9,9 @@ pub mod traits;
 pub use svd::{svd};
 pub use utils::{svd_mat};
 
+#[cfg(feature = "wide")]
+pub use wide::f32x8;
+
 // Tests
 #[cfg(test)]
 mod tests;
