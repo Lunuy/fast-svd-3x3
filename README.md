@@ -13,6 +13,7 @@ Direct port of [Computing the Singular Value Decomposition of 3x3 matrices with 
 - Get U/V as Quaternion
 - SIMD
 - Works for any types implementing `SVDCompatible` trait
+- Supports [wide](https://docs.rs/wide/latest/wide/) crate f32x8
 
 ## Installation
 ```bash
@@ -21,7 +22,7 @@ cargo add fast-svd-3x3
 ### SIMD
 ```toml
 [dependencies]
-fast-svd-3x3 = { features = ["sse", "avx", "avx512", "portable_simd"] }
+fast-svd-3x3 = { features = ["sse", "avx", "avx512", "portable_simd", "wide"] }
 ```
 To get preset trait for SIMD types, you should add features. (Note that avx512 currently does not work for many cpus)
 
@@ -221,6 +222,11 @@ pub trait SVDCompatible {
 ```
 You can implement SVDCompatible trait for your own type. Then `svd` and `svd_mat` will work for that type.
 
+## About Performance
+- I checked that performance of trait-based AVX2(__m256) implementation is same as hand-ported(preprocess original source code, convert it to rust) version for AVX2.
+- Portable SIMD on f32x8 is slower than AVX2(__m256). Running time: x1.4.
+- f32x8 from wide crate is slightly slower than AVX(__m256). Running time: x1.04.
+
 ## Tests
 ### Test
 ```bash
@@ -246,7 +252,3 @@ cargo test --release --features avx -- --ignored --nocapture __mm256_performance
 ```bash
 cargo test --release --features portable_simd -- --ignored --nocapture portable_simd_performance_test
 ```
-
-## About Performance
-- I checked that performance of trait-based AVX2(__m256) implementation is same as hand-ported(preprocess original source code, convert it to rust) version for AVX2.
-- Portable SIMD on f32x8 is slower than AVX2(__m256). Running time: x1.4.
