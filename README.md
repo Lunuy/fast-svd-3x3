@@ -226,6 +226,7 @@ You can implement SVDCompatible trait for your own type. Then `svd` and `svd_mat
 - I checked that performance of trait-based AVX2(__m256) implementation is same as hand-ported(preprocess original source code, convert it to rust) version for AVX2.
 - Portable SIMD on f32x8 is slower than AVX2(__m256). Running time: x1.4.
 - f32x8 from wide crate is slightly slower than AVX(__m256). Running time: x1.04.
+- The function uses input mutable variables as temporal storage several times, not just "copying result to them" once. So it may be good to locate input variables in contiguous memory location for spatial locality.
 
 ## Tests
 ### Test
